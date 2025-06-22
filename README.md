@@ -1,4 +1,4 @@
-# PrivetEd.Ajax
+# Priveted.Ajax
 
 [![npm version](https://img.shields.io/npm/v/@priveted/ajax)](https://www.npmjs.com/package/@priveted/ajax)
 [![license](https://img.shields.io/npm/l/@priveted/ajax)](https://github.com/yourusername/priveted-ajax/blob/main/LICENSE)
