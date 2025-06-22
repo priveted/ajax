@@ -1,8 +1,4 @@
 # Priveted.Ajax
-
-[![npm version](https://img.shields.io/npm/v/@priveted/ajax)](https://www.npmjs.com/package/@priveted/ajax)
-[![license](https://img.shields.io/npm/l/@priveted/ajax)](https://github.com/priveted/ajax/blob/main/LICENSE.md)
-
 Modern, lightweight and universal AJAX library that provides a unified interface for multiple request technologies (XHR and Fetch API).
 
 ## Features
