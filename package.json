@@ -1,0 +1,36 @@
+{
+  "name": "@priveted/ajax",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "A modern and lightweight library for working with ajax, which allows you to use various query technologies in a single style.",
+  "keywords": [
+    "ajax",
+    "requests",
+    "xhr",
+    "fetch"
+  ],
+  "homepage": "https://github.com/priveted/ajax",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/priveted/ajax"
+  },
+  "license": "MIT",
+  "author": "Eduard Y",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.29.0",
+    "eslint": "^9.29.0",
+    "globals": "^16.2.0",
+    "typescript": "~5.8.3",
+    "typescript-eslint": "^8.34.1",
+    "vite": "^6.3.5"
+  },
+  "engines": {
+    "node": "^18.0.0 || >=20.0.0"
+  }
+}
