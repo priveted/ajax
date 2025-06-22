@@ -1,6 +1,5 @@
 {
   "name": "@priveted/ajax",
-  "private": true,
   "version": "1.0.0",
   "type": "module",
   "description": "A modern and lightweight library for working with ajax, allowing you to use various request technologies in a single style.",
