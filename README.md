@@ -1,101 +1,214 @@
-# Priveted.Ajax
+# PrivetEd.Ajax
 
-A modern and lightweight library for working with ajax, which allows you to use various query technologies in a single style.
+[![npm version](https://img.shields.io/npm/v/@priveted/ajax)](https://www.npmjs.com/package/@priveted/ajax)
+[![license](https://img.shields.io/npm/l/@priveted/ajax)](https://github.com/yourusername/priveted-ajax/blob/main/LICENSE)
+[![bundle size](https://img.shields.io/bundlephobia/min/@priveted/ajax)](https://bundlephobia.com/package/@priveted/ajax)
 
-#### Installation
+Modern, lightweight and universal AJAX library that provides a unified interface for multiple request technologies (XHR and Fetch API).
 
+## Features
+
+- Unified API for both XMLHttpRequest and Fetch API
+- Support for multiple data types (FormData, Blob, JSON, etc.)
+- Progress tracking for uploads/downloads
+- Global configuration
+- TypeScript support
+- Abortable requests
+- Comprehensive error handling
+
+## Installation
+
+```bash
+npm install @priveted/ajax
 ```
-npm i @priveted/ajax
-```
 
-### Usage
+### Basic Usage
 
 ```js
-import { ajax } from '@priveted/ajax';
+import { ajax } from "@priveted/ajax";
 
-// Ajax request using FormData
-const form = document.getElementById('my-form');
+const form = document.getElementById("my-form");
 const data = new FormData(form);
-// All options
-const defaultOptions = {
-  method: "GET",                   // "GET"| "POST" | "PUT" | "PATCH"  | "DELETE" | "HEAD" | "OPTIONS"
-  data: data,                      // object | string | FormData | Blob | ArrayBuffer | URLSearchParams | null
-  engine: "xhr",                   // "xhr" | "fetch"
-  headers: {},                     // object
-  timeout: 0,                      // number
-  responseType: "json",            // "json" | "text" | "blob" | "arraybuffer" | "document";
-  cache: "default";                // "default" | "no-store" | "reload" | "no-cache" | "force-cache" | "only-if-cached";
-  credentials: "same-origin",      // "omit" | "same-origin" | "include"
-  mode: "cors",                    // "cors" | "no-cors" | "same-origin" | "navigate"
-  redirect: "follow",              // "follow" | "error" | "manual"
-  signal: undefined,               // undefined | AbortSignal
-  onDownloadProgress: (event) => { // event = { loaded: 0, total: 0, percent: 0, lengthComputable: true}
-    //...
-  },
-  onUploadProgress: (event) => {   // event = { loaded: 0, total: 0, percent: 0, lengthComputable: true}
-    //...
-  }
-};
-//
-ajax('/myUrl', defaultOptions).then((response) => {
-  console.log(response);
-}).catch((error) => {
-  console.log(error);
-});
+
+ajax("/api/clean", {
+  method: "POST",
+  data: { key: "value" },
+  responseType: "json",
+})
+  .then((response) => {
+    console.log("Success:", response);
+  })
+  .catch((error) => {
+    console.error("Error:", error);
+  });
 ```
 
-### Example of a method using only XMLHttpRequest
+### API Reference
+
+`ajax(url: string, options?: AjaxOptions): Promise<any>`
+
+The main method that provides a unified interface for making requests. It can use either XHR or Fetch API under the hood based on the `engine` option.
+
+| Option               | Type             | Default       | Description                                                                              |
+| -------------------- | ---------------- | ------------- | ---------------------------------------------------------------------------------------- |
+| `method`             | string           | "GET"         | HTTP method: "GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"                  |
+| `data`               | various          | null          | Request data (object, string, FormData, Blob, ArrayBuffer, URLSearchParams)              |
+| `engine`             | "xhr" \| "fetch" | "xhr"         | Underlying technology to use                                                             |
+| `headers`            | object           | {}            | Request headers                                                                          |
+| `timeout`            | number           | 0             | Request timeout in ms                                                                    |
+| `responseType`       | string           | "json"        | Response type: "json", "text", "blob", "arraybuffer", "document"                         |
+| `cache`              | string           | "default"     | Cache mode: "default", "no-store", "reload", "no-cache", "force-cache", "only-if-cached" |
+| `credentials`        | string           | "same-origin" | Credentials policy: "omit", "same-origin", "include"                                     |
+| `mode`               | string           | "cors"        | Request mode: "cors", "no-cors", "same-origin", "navigate"                               |
+| `redirect`           | string           | "follow"      | Redirect handling: "follow", "error", "manual"                                           |
+| `signal`             | AbortSignal      | undefined     | AbortSignal for cancelling request                                                       |
+| `onDownloadProgress` | function         | undefined     | Download progress callback                                                               |
+| `onUploadProgress`   | function         | undefined     | Upload progress callback                                                                 |
+
+`xhrRequest(url: string, options?: XHROptions): Promise<any>`
+
+Make requests using XMLHttpRequest specifically.
 
 ```js
 import { xhrRequest } from "@priveted/ajax";
 
-xhrRequest("/getPosts?sort=new", {
+xhrRequest("/api/getPosts", {
   method: "GET",
-  data: new URLSearchParams("status=active&topic=new"),
-})
-  .then((response) => {
-    console.log(response);
-  })
-  .catch((error) => {
-    console.log(error);
-  });
-```
-
-### Example of a method using only Fetch API
-
-```js
-import { fetchRequest } from '@priveted/ajax';
-
-fetchRequest("/post/save", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  }
-  data: {
-    postId: 123,
+  timeout: 5000,
+  onDownloadProgress: (event) => {
+    console.log(`Downloaded ${event.percent}%`);
   },
 })
   .then((response) => {
-    console.log(response);
-  }).catch((error) => {
-    console.log(error);
+    console.log("Success:", response);
+  })
+  .catch((error) => {
+    console.error("Error:", error);
   });
 ```
 
-### Global configuration
+`fetchRequest(url: string, options?: FetchOptions): Promise<any>`
+
+Make requests using Fetch API specifically.
 
 ```js
-import { setConfig, getConfig } from "@priveted/ajax";
+import { fetchRequest } from "@priveted/ajax";
 
-// The ajax, xhrRequest, and fetchRequest methods will now use this configuration by default.
+const form = document.getElementById("my-form");
+const data = new FormData(form);
+
+fetchRequest("/api/post/save", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  data: { key: "value" },
+})
+  .then((response) => {
+    console.log("Success:", response);
+  })
+  .catch((error) => {
+    console.error("Error:", error);
+  });
+```
+
+### Configuration
+
+`setConfig(options: GlobalConfig): void`
+
+Set a global configuration that will be used by all kinds of requests.
+
+```js
+import { setConfig } from "@priveted/ajax";
+
 setConfig({
-  timeout: 100,
-  cache: "no-cache",
-  headers: { "X-Requested-With": "XMLHttpRequest" },
+  timeout: 10000,
+  credentials: "include",
+  headers: {
+    "X-Requested-With": "XMLHttpRequest",
+  },
+});
+```
+
+`getConfig(key?: string): any`
+
+Get global configuration or specific configuration value.
+
+```js
+import { getConfig } from "@priveted/ajax";
+
+// Get entire config
+const config = getConfig();
+
+// Get specific value
+const timeout = getConfig("timeout");
+```
+
+### Advanced Examples
+
+Uploading files with progress
+
+```js
+import { ajax } from "@priveted/ajax";
+
+const fileInput = document.getElementById("file-input");
+const formData = new FormData();
+formData.append("file", fileInput.files[0]);
+
+ajax("/upload", {
+  method: "POST",
+  data: formData,
+  onUploadProgress: (event) => {
+    console.log(`Upload progress: ${event.percent}%`);
+  },
+});
+```
+
+Cancelling requests
+
+```js
+import { ajax } from "@priveted/ajax";
+
+const controller = new AbortController();
+
+ajax("/long-request", {
+  signal: controller.signal,
+}).catch((error) => {
+  if (error.name === "AbortError") {
+    console.log("Request was aborted");
+  }
 });
 
-// Get all global configuration
-const { timeout, cache } = getConfig();
-// Get configuration by key
-const headers = getConfig("headers");
+// Abort the request
+controller.abort();
 ```
+
+### Error Handling
+
+- `NetworkError` for network issues
+- `TimeoutError` when request times out
+- `HttpError` for HTTP errors (status codes 4xx/5xx)
+- `AbortError` when request is aborted
+
+```js
+import { ajax } from "@priveted/ajax";
+
+ajax("/api/data").catch((error) => {
+  if (error.name === "TimeoutError") {
+    console.log("Request timed out");
+  } else if (error.name === "HttpError") {
+    console.log(`Server responded with ${error.status}`);
+  } else {
+    console.log("Network error", error.message);
+  }
+});
+```
+
+### Browser Support
+
+The library supports all modern browsers and IE11+. For IE11 you might need polyfills for:
+- Promise
+- Fetch API (if you want to use fetch engine)
+
+### License
+MIT © Eduard Y
