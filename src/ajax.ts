@@ -1,4 +1,8 @@
+import AbortError from "./errors/AbortError";
 import AjaxError from "./errors/AjaxError";
+import HttpError from "./errors/HttpError";
+import NetworkError from "./errors/NetworkError";
+import TimeoutError from "./errors/TimeoutError";
 import type {
   AjaxOptions,
   GlobalConfig,
@@ -180,13 +184,13 @@ export function xhrRequest<T>(url: string, options: AjaxOptions): Promise<T> {
 
     if (mergedOptions.timeout) {
       xhr.timeout = mergedOptions.timeout;
-      xhr.ontimeout = () => reject(new AjaxError("Request timeout", 408));
+      xhr.ontimeout = () => reject(new TimeoutError("Request timeout", 408));
     }
 
     if (mergedOptions.signal) {
       mergedOptions.signal.addEventListener("abort", () => {
         xhr.abort();
-        reject(new AjaxError("Request aborted", 0));
+        reject(new AbortError("Request aborted", 0));
       });
     }
 
@@ -204,7 +208,7 @@ export function xhrRequest<T>(url: string, options: AjaxOptions): Promise<T> {
         resolve(responseData);
       } else {
         reject(
-          new AjaxError(
+          new HttpError(
             `Request failed with status ${xhr.status}`,
             xhr.status,
             xhr.response
@@ -213,7 +217,7 @@ export function xhrRequest<T>(url: string, options: AjaxOptions): Promise<T> {
       }
     };
 
-    xhr.onerror = () => reject(new AjaxError("Network request failed", 0));
+    xhr.onerror = () => reject(new NetworkError("Network request failed", 0));
 
     if (mergedOptions.data) {
       const isJson = headers["Content-Type"]?.includes("application/json");
@@ -289,7 +293,7 @@ export async function fetchRequest<T>(
         mergedOptions.responseType
       );
 
-      throw new AjaxError(
+      throw new HttpError(
         `Request failed with status ${response.status}`,
         response.status,
         errorData
@@ -298,12 +302,18 @@ export async function fetchRequest<T>(
 
     return await parseResponse<T>(response, mergedOptions.responseType);
   } catch (error) {
-    if (error instanceof DOMException && error.name === "AbortError") {
-      throw new AjaxError(
-        mergedOptions.timeout ? "Request timeout" : "Request aborted",
-        408
-      );
+    if (error instanceof DOMException) {
+      if (error.name === "AbortError") {
+        if (mergedOptions.timeout)
+          throw new TimeoutError("Request timeout", 408);
+        else throw new AbortError("Request aborted", 408);
+      }
+    } else if (error instanceof TypeError) {
+      if (error.message.includes("NetworkError"))
+        throw new NetworkError("Network request failed", 0);
+      else throw new AjaxError(error.message, 0);
     }
+
     throw error;
   } finally {
     if (timeoutId) {
@@ -500,7 +510,7 @@ async function trackDownloadProgress<T>(
 
   if (!response.ok) {
     const errorData = await parseErrorResponseFromBuffer(data, responseType);
-    throw new AjaxError(
+    throw new HttpError(
       `Request failed with status ${response.status}`,
       response.status,
       errorData

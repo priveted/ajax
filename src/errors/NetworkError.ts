@@ -1,10 +1,10 @@
-export default class AjaxError extends Error {
+export default class NetworkError extends Error {
   public status?: number;
   public response?: unknown;
 
   constructor(message: string, status?: number, response?: unknown) {
     super(message);
-    this.name = "AjaxError";
+    this.name = "NetworkError";
     this.status = status;
     this.response = response;
   }

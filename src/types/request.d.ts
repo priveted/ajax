@@ -16,7 +16,9 @@ export type XMLHttpRequestBodyInit =
   | FormData
   | URLSearchParams
   | string
-  | Document;
+  | Document
+  | null
+  | undefined;
 export type RequestData =
   | Record<string, string | number | boolean>
   | FormData
