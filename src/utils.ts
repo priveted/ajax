@@ -1,5 +1,9 @@
 /**
- * Add query parameters to URL
+ * Appends query parameters to a URL while handling existing parameters.
+ *
+ * @param url - The base URL to which parameters will be added.
+ * @param params - An object containing key-value pairs of parameters to add. Null or undefined values will be automatically filtered out.
+ * @returns The constructed URL with query parameters. If no valid parameters are provided, the original URL is returned unchanged.
  */
 export function addQueryParams(
   url: string,
@@ -49,10 +53,20 @@ export function deepMergeObject<T extends object>(
   return output;
 }
 
+/**
+ * Checks if the given item is a plain object (and not an array or null).
+ * @param item - The item to check.
+ * @returns True if the item is a non-null object and not an array, false otherwise.
+ */
 export function isObject(item: any): item is object {
   return item && typeof item === "object" && !Array.isArray(item);
 }
 
+/**
+ * Checks if an object is empty (has no own enumerable properties).
+ * @param obj - The object to check.
+ * @returns True if the object has no enumerable properties, false otherwise.
+ */
 export function isEmptyObject(obj: object): boolean {
   return Object.keys(obj).length === 0;
 }
