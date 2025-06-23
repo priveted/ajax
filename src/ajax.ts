@@ -12,6 +12,9 @@ import type {
 } from "./types";
 import { addQueryParams, deepMergeObject, isEmptyObject } from "./utils";
 
+/**
+ * Global configuration store for AJAX requests.
+ */
 let globalConfig: GlobalConfig = {};
 
 /**
@@ -41,9 +44,12 @@ export function getConfig<T extends keyof GlobalConfig>(
 }
 
 /**
- * Preparation of request options
- * @param options Request Options
- * @returns Prepared options
+ * Prepares and normalizes request options by merging global configurations with request-specific options.
+ * Handles request data serialization and URL preparation based on the request method.
+ *
+ * @param url - The target URL for the request
+ * @param options - Request-specific options to override defaults
+ * @returns A tuple containing the [finalUrl, preparedOptions]
  */
 export function prepareRequest(
   url: string,
@@ -323,7 +329,13 @@ export async function fetchRequest<T>(
 }
 
 /**
- * Fetch API upload progress tracking
+ * Tracks upload progress for various body types (Blob, FormData, strings, etc.)
+ * and reports progress via callback. For Blobs and FormData, it reads data in chunks
+ * to provide granular progress updates.
+ *
+ * @param body - The request body to track (Blob, FormData, string, ArrayBuffer, etc.)
+ * @param onProgress - Callback function that receives progress events
+ * @returns A Promise resolving to the processed body
  */
 async function trackUploadProgress(
   body: BodyInit,
@@ -355,7 +367,12 @@ async function trackUploadProgress(
 }
 
 /**
- * Tracking progress for Blob
+ * Tracks upload progress for Blob objects by reading them in chunks (1MB by default).
+ * Provides detailed progress updates during the read operation.
+ *
+ * @param blob - The Blob object to track
+ * @param onProgress - Callback function that receives progress events
+ * @returns A Promise resolving to a new Blob with the same content
  */
 async function trackBlobProgress(
   blob: Blob,
@@ -418,7 +435,12 @@ async function trackBlobProgress(
 }
 
 /**
- * Tracking progress for FormData
+ * Tracks upload progress for FormData objects by calculating total size and
+ * monitoring progress of each field. Handles both Blob and string fields.
+ *
+ * @param formData - The FormData object to track
+ * @param onProgress - Callback function that receives progress events
+ * @returns A Promise resolving to a new FormData with the same content
  */
 async function trackFormDataProgress(
   formData: FormData,
@@ -466,7 +488,15 @@ async function trackFormDataProgress(
 }
 
 /**
- * Fetch API download progress tracking
+ * Tracks download progress from a Fetch API Response by reading the stream in chunks.
+ * Supports reporting percentage complete when Content-Length is available.
+ *
+ * @template T - The expected response type
+ * @param response - The Fetch API Response object
+ * @param onProgress - Callback function that receives progress events
+ * @param responseType - Optional type hint for response parsing
+ * @returns A Promise resolving to the parsed response data
+ * @throws {HttpError} When the response status is not OK
  */
 async function trackDownloadProgress<T>(
   response: Response,
@@ -521,7 +551,13 @@ async function trackDownloadProgress<T>(
 }
 
 /**
- * Parse response based on response type
+ * Parses a Fetch API Response according to the specified response type.
+ * Supports JSON, text, Blob, ArrayBuffer, and HTML document types.
+ *
+ * @template T - The expected return type
+ * @param response - The Fetch API Response object
+ * @param responseType - The expected response type
+ * @returns A Promise resolving to the parsed data
  */
 async function parseResponse<T>(
   response: Response,
@@ -546,7 +582,11 @@ async function parseResponse<T>(
 }
 
 /**
- * Parse error response with fallback
+ * Attempts to parse an error response, falling back to text if primary parsing fails.
+ *
+ * @param response - The error Response object
+ * @param responseType - The expected response type
+ * @returns A Promise resolving to the parsed error data or text
  */
 async function parseErrorResponse(
   response: Response,
@@ -564,7 +604,12 @@ async function parseErrorResponse(
 }
 
 /**
- * Parse response from buffer based on response type
+ * Parses response data from a Uint8Array buffer according to the specified type.
+ *
+ * @template T - The expected return type
+ * @param buffer - The binary data buffer
+ * @param responseType - The expected response type
+ * @returns The parsed data
  */
 function parseResponseFromBuffer<T>(
   buffer: Uint8Array,
@@ -592,7 +637,11 @@ function parseResponseFromBuffer<T>(
 }
 
 /**
- * Parse error response from buffer with fallback
+ * Attempts to parse error response data from a buffer, falling back to text if primary parsing fails.
+ *
+ * @param buffer - The binary error data
+ * @param responseType - The expected response type
+ * @returns The parsed error data or text
  */
 function parseErrorResponseFromBuffer(
   buffer: Uint8Array,
