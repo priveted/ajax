@@ -60,7 +60,7 @@ The main method that provides a unified interface for making requests. It can us
 | `onDownloadProgress` | function         | undefined     | Download progress callback                                                               |
 | `onUploadProgress`   | function         | undefined     | Upload progress callback                                                                 |
 
-`xhrRequest(url: string, options?: XHROptions): Promise<any>`
+`xhrRequest(url: string, options?: AjaxOptions): Promise<any>`
 
 Make requests using XMLHttpRequest specifically.
 
@@ -82,7 +82,7 @@ xhrRequest("/api/getPosts", {
   });
 ```
 
-`fetchRequest(url: string, options?: FetchOptions): Promise<any>`
+`fetchRequest(url: string, options?: AjaxOptions): Promise<any>`
 
 Make requests using Fetch API specifically.
 
