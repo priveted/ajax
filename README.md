@@ -22,9 +22,6 @@ npm install @priveted/ajax
 ```js
 import { ajax } from "@priveted/ajax";
 
-const form = document.getElementById("my-form");
-const data = new FormData(form);
-
 ajax("/api/clean", {
   method: "POST",
   data: { key: "value" },
@@ -88,9 +85,6 @@ Make requests using Fetch API specifically.
 
 ```js
 import { fetchRequest } from "@priveted/ajax";
-
-const form = document.getElementById("my-form");
-const data = new FormData(form);
 
 fetchRequest("/api/post/save", {
   method: "POST",
