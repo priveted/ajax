@@ -226,11 +226,8 @@ export function xhrRequest<T>(url: string, options: AjaxOptions): Promise<T> {
     xhr.onerror = () => reject(new NetworkError("Network request failed", 0));
 
     if (mergedOptions.data) {
-      const isJson = headers["Content-Type"]?.includes("application/json");
-
-      const body = isJson
-        ? JSON.stringify(mergedOptions.data)
-        : mergedOptions.data;
+      const isJson = headers["Content-Type"]?.includes("application/json"),
+        body = isJson ? JSON.stringify(mergedOptions.data) : mergedOptions.data;
 
       xhr.send(body as XMLHttpRequestBodyInit);
     } else {
@@ -269,6 +266,7 @@ export async function fetchRequest<T>(
   }
 
   let timeoutId: number | undefined;
+
   if (mergedOptions.timeout) {
     const controller = new AbortController();
     init.signal = controller.signal;
@@ -394,10 +392,12 @@ async function trackBlobProgress(
         if (offset >= blob.size) {
           const result = new Uint8Array(blob.size);
           let position = 0;
+
           for (const chunk of chunks) {
             result.set(chunk, position);
             position += chunk.length;
           }
+
           resolve(result);
 
           return;

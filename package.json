@@ -1,6 +1,6 @@
 {
   "name": "@priveted/ajax",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "type": "module",
   "description": "A modern and lightweight library for working with ajax, allowing you to use various request technologies in a single style.",
   "keywords": [
@@ -19,7 +19,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "eslint . --fix",
+    "format": "prettier --write ."
   },
   "devDependencies": {
     "@eslint/js": "^9.29.0",
