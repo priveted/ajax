@@ -5,7 +5,6 @@ export type GlobalConfig = Omit<
   | "onUploadProgress"
   | "onDownloadProgress"
   | "signal"
-  | "params"
   | "data"
   | "url"
   | "engine"
