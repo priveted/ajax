@@ -31,26 +31,28 @@ export function deepMergeObject<T extends object>(
 ): T {
   if (!sources.length) return target;
 
-  const output: any = { ...target };
+  const output: { [K in keyof T]?: T[K] | Partial<T[K]> } = { ...target };
 
   for (const source of sources) {
     if (!isObject(source)) continue;
 
     for (const key in source) {
-      if (source.hasOwnProperty(key)) {
-        if (isObject(source[key]) && key in target && isObject(target[key])) {
-          output[key] = deepMergeObject(
-            target[key] as object,
-            source[key] as object
-          );
+      if (Object.prototype.hasOwnProperty.call(source, key)) {
+        const sourceValue = source[key];
+        const targetValue = target[key as keyof T];
+
+        if (isObject(sourceValue) && key in target && isObject(targetValue)) {
+          output[key as keyof T] = deepMergeObject(
+            targetValue as object,
+            sourceValue as object
+          ) as T[keyof T];
         } else {
-          output[key] = source[key];
+          output[key as keyof T] = sourceValue as T[keyof T];
         }
       }
     }
   }
-
-  return output;
+  return output as T;
 }
 
 /**
@@ -58,10 +60,9 @@ export function deepMergeObject<T extends object>(
  * @param item - The item to check.
  * @returns True if the item is a non-null object and not an array, false otherwise.
  */
-export function isObject(item: any): item is object {
-  return item && typeof item === "object" && !Array.isArray(item);
+export function isObject(item: unknown): item is Record<PropertyKey, unknown> {
+  return item !== null && typeof item === "object" && !Array.isArray(item);
 }
-
 /**
  * Checks if an object is empty (has no own enumerable properties).
  * @param obj - The object to check.
