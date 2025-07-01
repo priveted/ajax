@@ -7,7 +7,7 @@ import type {
   RequestCache,
   RequestEngine,
   RequestRedirect,
-  RequestCredentials,
+  RequestCredentials
 } from ".";
 
 export interface AjaxOptions {

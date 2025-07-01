@@ -1,4 +1,5 @@
 # Priveted.Ajax
+
 Modern, lightweight and universal AJAX library that provides a unified interface for multiple request technologies (XHR and Fetch API).
 
 ## Features
@@ -25,7 +26,7 @@ import { ajax } from "@priveted/ajax";
 ajax("/api/clean", {
   method: "POST",
   data: { key: "value" },
-  responseType: "json",
+  responseType: "json"
 })
   .then((response) => {
     console.log("Success:", response);
@@ -69,7 +70,7 @@ xhrRequest("/api/getPosts", {
   timeout: 5000,
   onDownloadProgress: (event) => {
     console.log(`Downloaded ${event.percent}%`);
-  },
+  }
 })
   .then((response) => {
     console.log("Success:", response);
@@ -89,9 +90,9 @@ import { fetchRequest } from "@priveted/ajax";
 fetchRequest("/api/post/save", {
   method: "POST",
   headers: {
-    "Content-Type": "application/json",
+    "Content-Type": "application/json"
   },
-  data: { key: "value" },
+  data: { key: "value" }
 })
   .then((response) => {
     console.log("Success:", response);
@@ -114,8 +115,8 @@ setConfig({
   timeout: 10000,
   credentials: "include",
   headers: {
-    "X-Requested-With": "XMLHttpRequest",
-  },
+    "X-Requested-With": "XMLHttpRequest"
+  }
 });
 ```
 
@@ -149,7 +150,7 @@ ajax("/upload", {
   data: formData,
   onUploadProgress: (event) => {
     console.log(`Upload progress: ${event.percent}%`);
-  },
+  }
 });
 ```
 
@@ -161,7 +162,7 @@ import { ajax } from "@priveted/ajax";
 const controller = new AbortController();
 
 ajax("/long-request", {
-  signal: controller.signal,
+  signal: controller.signal
 }).catch((error) => {
   if (error.name === "AbortError") {
     console.log("Request was aborted");
@@ -196,8 +197,10 @@ ajax("/api/data").catch((error) => {
 ### Browser Support
 
 The library supports all modern browsers and IE11+. For IE11 you might need polyfills for:
+
 - Promise
 - Fetch API (if you want to use fetch engine)
 
 ### License
+
 MIT © Eduard Y
