@@ -1,6 +1,1 @@
-export type ResponseType =
-  | "json"
-  | "text"
-  | "blob"
-  | "arraybuffer"
-  | "document";
+export type ResponseType = "json" | "text" | "blob" | "arraybuffer" | "document";

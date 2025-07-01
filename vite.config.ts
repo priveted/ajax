@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import { resolve } from "path";
 import { fileURLToPath } from "url";
+import dts from "vite-plugin-dts";
 
 export default defineConfig({
   build: {
@@ -12,13 +13,20 @@ export default defineConfig({
         if (format === "umd") return "ajax.umd.cjs";
         return "ajax.js";
       },
-      formats: ["es", "umd"] as ["es", "umd"],
+      formats: ["es", "umd"] as ["es", "umd"]
     },
     rollupOptions: {
       external: [],
       output: {
-        globals: {},
-      },
-    },
-  }
+        globals: {}
+      }
+    }
+  },
+  plugins: [
+    dts({
+      // Плагин для генерации .d.ts
+      insertTypesEntry: true, // Добавляет ссылку на типы в package.json
+      include: ["src"]
+    })
+  ]
 });
