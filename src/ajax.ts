@@ -9,7 +9,7 @@ import type {
   ProgressEvent,
   ResponseType,
   XMLHttpRequestBodyInit,
-} from "./types";
+} from "../types";
 import { addQueryParams, deepMergeObject, isEmptyObject } from "./utils";
 
 /**

@@ -2,6 +2,9 @@
   "name": "@priveted/ajax",
   "version": "1.0.3",
   "type": "module",
+  "main": "dist/ajax.umd.js",
+  "module": "dist/ajax.mjs",
+  "types": "./types/index.d.ts",
   "description": "A modern and lightweight library for working with ajax, allowing you to use various request technologies in a single style.",
   "keywords": [
     "ajax",
