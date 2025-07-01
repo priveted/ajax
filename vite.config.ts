@@ -24,8 +24,7 @@ export default defineConfig({
   },
   plugins: [
     dts({
-      // Плагин для генерации .d.ts
-      insertTypesEntry: true, // Добавляет ссылку на типы в package.json
+      insertTypesEntry: true,
       include: ["src"]
     })
   ]
