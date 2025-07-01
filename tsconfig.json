@@ -1,16 +1,12 @@
 {
   "compilerOptions": {
-    "types": [
-      "vite/client"
-    ],
+    "declaration": true,
+    "outDir": "./dist",
+    "types": ["vite/client"],
     "target": "ES2020",
     "useDefineForClassFields": true,
     "module": "ESNext",
-    "lib": [
-      "ES2020",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
     /* Bundler mode */
     "moduleResolution": "bundler",
@@ -26,9 +22,5 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": [
-    "src",
-    "lib",
-    "env.d.ts"
-, "types"  ],
+  "include": ["src", "lib", "env.d.ts", "types"]
 }

@@ -3,13 +3,7 @@ import AjaxError from "./errors/AjaxError";
 import HttpError from "./errors/HttpError";
 import NetworkError from "./errors/NetworkError";
 import TimeoutError from "./errors/TimeoutError";
-import type {
-  AjaxOptions,
-  GlobalConfig,
-  ProgressEvent,
-  ResponseType,
-  XMLHttpRequestBodyInit,
-} from "../types";
+import type { AjaxOptions, GlobalConfig, ProgressEvent, ResponseType, XMLHttpRequestBodyInit } from "../types";
 import { addQueryParams, deepMergeObject, isEmptyObject } from "./utils";
 
 /**
@@ -31,12 +25,8 @@ export function setConfig(config: GlobalConfig): void {
  * @returns Whole config object or specific config value
  */
 export function getConfig(): GlobalConfig;
-export function getConfig<T extends keyof GlobalConfig>(
-  key: T
-): GlobalConfig[T];
-export function getConfig<T extends keyof GlobalConfig>(
-  key?: T
-): GlobalConfig | GlobalConfig[T] {
+export function getConfig<T extends keyof GlobalConfig>(key: T): GlobalConfig[T];
+export function getConfig<T extends keyof GlobalConfig>(key?: T): GlobalConfig | GlobalConfig[T] {
   if (key === undefined) {
     return globalConfig;
   }
@@ -51,10 +41,7 @@ export function getConfig<T extends keyof GlobalConfig>(
  * @param options - Request-specific options to override defaults
  * @returns A tuple containing the [finalUrl, preparedOptions]
  */
-export function prepareRequest(
-  url: string,
-  options: AjaxOptions
-): [string, AjaxOptions] {
+export function prepareRequest(url: string, options: AjaxOptions): [string, AjaxOptions] {
   const globalConfig: GlobalConfig = getConfig(),
     defaultOptions: AjaxOptions = {
       method: "GET",
@@ -66,21 +53,13 @@ export function prepareRequest(
       cache: "default",
       credentials: "same-origin",
       mode: "cors",
-      redirect: "follow",
+      redirect: "follow"
     };
 
-  const finalOptions = deepMergeObject(
-      defaultOptions,
-      deepMergeObject(globalConfig, options)
-    ),
+  const finalOptions = deepMergeObject(defaultOptions, deepMergeObject(globalConfig, options)),
     finalUrl =
-      finalOptions.method === "GET" &&
-      typeof finalOptions.data === "object" &&
-      !isEmptyObject(finalOptions.data || {})
-        ? addQueryParams(
-            url,
-            finalOptions.data as Record<string, string | number | boolean>
-          )
+      finalOptions.method === "GET" && typeof finalOptions.data === "object" && !isEmptyObject(finalOptions.data || {})
+        ? addQueryParams(url, finalOptions.data as Record<string, string | number | boolean>)
         : url;
 
   const { data } = finalOptions;
@@ -105,13 +84,8 @@ export function prepareRequest(
  * @param url Request url
  * @param options Request Options
  */
-export function ajax<T = unknown>(
-  url: string,
-  options: AjaxOptions = {}
-): Promise<T> {
-  return options?.engine === "xhr"
-    ? xhrRequest<T>(url, options)
-    : fetchRequest<T>(url, options);
+export function ajax<T = unknown>(url: string, options: AjaxOptions = {}): Promise<T> {
+  return options?.engine === "xhr" ? xhrRequest<T>(url, options) : fetchRequest<T>(url, options);
 }
 
 /**
@@ -137,23 +111,21 @@ export function xhrRequest<T>(url: string, options: AjaxOptions): Promise<T> {
 
     if (mergedOptions.onUploadProgress) {
       xhr.upload.onprogress = (event: ProgressEvent) => {
-        const percent = event.total
-          ? Math.round((event.loaded / event.total) * 100)
-          : 0;
+        const percent = event.total ? Math.round((event.loaded / event.total) * 100) : 0;
 
         if (event.lengthComputable) {
           mergedOptions.onUploadProgress!({
             loaded: event.loaded,
             total: event.total,
             lengthComputable: true,
-            percent: percent,
+            percent: percent
           });
         } else {
           mergedOptions.onUploadProgress!({
             loaded: event.loaded,
             total: undefined,
             lengthComputable: false,
-            percent: percent,
+            percent: percent
           });
         }
       };
@@ -163,9 +135,7 @@ export function xhrRequest<T>(url: string, options: AjaxOptions): Promise<T> {
       let lastPercent = 0;
 
       xhr.onprogress = (event: ProgressEvent) => {
-        const percent = event.total
-          ? Math.round((event.loaded / event.total) * 100)
-          : 0;
+        const percent = event.total ? Math.round((event.loaded / event.total) * 100) : 0;
 
         if (event.lengthComputable) {
           if (percent > lastPercent) {
@@ -174,7 +144,7 @@ export function xhrRequest<T>(url: string, options: AjaxOptions): Promise<T> {
               loaded: event.loaded,
               total: event.total,
               lengthComputable: true,
-              percent: percent,
+              percent: percent
             });
           }
         } else {
@@ -182,7 +152,7 @@ export function xhrRequest<T>(url: string, options: AjaxOptions): Promise<T> {
             loaded: event.loaded,
             total: undefined,
             lengthComputable: false,
-            percent: percent,
+            percent: percent
           });
         }
       };
@@ -205,21 +175,12 @@ export function xhrRequest<T>(url: string, options: AjaxOptions): Promise<T> {
         let responseData = xhr.response;
 
         if (responseType === "document") {
-          responseData = new DOMParser().parseFromString(
-            xhr.responseText,
-            "text/html"
-          );
+          responseData = new DOMParser().parseFromString(xhr.responseText, "text/html");
         }
 
         resolve(responseData);
       } else {
-        reject(
-          new HttpError(
-            `Request failed with status ${xhr.status}`,
-            xhr.status,
-            xhr.response
-          )
-        );
+        reject(new HttpError(`Request failed with status ${xhr.status}`, xhr.status, xhr.response));
       }
     };
 
@@ -241,10 +202,7 @@ export function xhrRequest<T>(url: string, options: AjaxOptions): Promise<T> {
  * @param url Request url
  * @param options Request Options
  */
-export async function fetchRequest<T>(
-  url: string,
-  options: AjaxOptions
-): Promise<T> {
+export async function fetchRequest<T>(url: string, options: AjaxOptions): Promise<T> {
   const [urlWithParams, mergedOptions] = prepareRequest(url, options),
     init: RequestInit = {
       method: mergedOptions.method,
@@ -253,16 +211,13 @@ export async function fetchRequest<T>(
       credentials: mergedOptions.credentials,
       mode: mergedOptions.mode,
       redirect: mergedOptions.redirect,
-      signal: mergedOptions.signal,
+      signal: mergedOptions.signal
     };
 
   if (mergedOptions.data) {
-    const isJson =
-      mergedOptions.headers?.["Content-Type"]?.includes("application/json");
+    const isJson = mergedOptions.headers?.["Content-Type"]?.includes("application/json");
 
-    init.body = isJson
-      ? JSON.stringify(mergedOptions.data)
-      : (mergedOptions.data as BodyInit);
+    init.body = isJson ? JSON.stringify(mergedOptions.data) : (mergedOptions.data as BodyInit);
   }
 
   let timeoutId: number | undefined;
@@ -284,37 +239,24 @@ export async function fetchRequest<T>(
     const response = await fetch(urlWithParams, init);
 
     if (mergedOptions.onDownloadProgress) {
-      return await trackDownloadProgress<T>(
-        response,
-        mergedOptions.onDownloadProgress,
-        mergedOptions.responseType
-      );
+      return await trackDownloadProgress<T>(response, mergedOptions.onDownloadProgress, mergedOptions.responseType);
     }
 
     if (!response.ok) {
-      const errorData = await parseErrorResponse(
-        response,
-        mergedOptions.responseType
-      );
+      const errorData = await parseErrorResponse(response, mergedOptions.responseType);
 
-      throw new HttpError(
-        `Request failed with status ${response.status}`,
-        response.status,
-        errorData
-      );
+      throw new HttpError(`Request failed with status ${response.status}`, response.status, errorData);
     }
 
     return await parseResponse<T>(response, mergedOptions.responseType);
   } catch (error) {
     if (error instanceof DOMException) {
       if (error.name === "AbortError") {
-        if (mergedOptions.timeout)
-          throw new TimeoutError("Request timeout", 408);
+        if (mergedOptions.timeout) throw new TimeoutError("Request timeout", 408);
         else throw new AbortError("Request aborted", 408);
       }
     } else if (error instanceof TypeError) {
-      if (error.message.includes("NetworkError"))
-        throw new NetworkError("Network request failed", 0);
+      if (error.message.includes("NetworkError")) throw new NetworkError("Network request failed", 0);
       else throw new AjaxError(error.message, 0);
     }
 
@@ -335,10 +277,7 @@ export async function fetchRequest<T>(
  * @param onProgress - Callback function that receives progress events
  * @returns A Promise resolving to the processed body
  */
-async function trackUploadProgress(
-  body: BodyInit,
-  onProgress: (progress: ProgressEvent) => void
-): Promise<BodyInit> {
+async function trackUploadProgress(body: BodyInit, onProgress: (progress: ProgressEvent) => void): Promise<BodyInit> {
   if (body instanceof Blob) return trackBlobProgress(body, onProgress);
 
   if (body instanceof FormData) return trackFormDataProgress(body, onProgress);
@@ -347,11 +286,9 @@ async function trackUploadProgress(
 
   if (typeof body === "string") size = new TextEncoder().encode(body).length;
 
-  if (body instanceof ArrayBuffer || body instanceof Uint8Array)
-    size = body.byteLength;
+  if (body instanceof ArrayBuffer || body instanceof Uint8Array) size = body.byteLength;
 
-  if (body instanceof URLSearchParams)
-    size = new TextEncoder().encode(body.toString()).length;
+  if (body instanceof URLSearchParams) size = new TextEncoder().encode(body.toString()).length;
 
   if (body instanceof Blob) size = body.size;
 
@@ -359,7 +296,7 @@ async function trackUploadProgress(
     loaded: size,
     total: size,
     lengthComputable: true,
-    percent: 0,
+    percent: 0
   });
   return body;
 }
@@ -372,14 +309,8 @@ async function trackUploadProgress(
  * @param onProgress - Callback function that receives progress events
  * @returns A Promise resolving to a new Blob with the same content
  */
-async function trackBlobProgress(
-  blob: Blob,
-  onProgress: (progress: ProgressEvent) => void
-): Promise<Blob> {
-  const readBlobWithProgress = (
-    blob: Blob,
-    onProgress: (progress: ProgressEvent) => void
-  ): Promise<Uint8Array> => {
+async function trackBlobProgress(blob: Blob, onProgress: (progress: ProgressEvent) => void): Promise<Blob> {
+  const readBlobWithProgress = (blob: Blob, onProgress: (progress: ProgressEvent) => void): Promise<Uint8Array> => {
     const reader = new FileReader(),
       chunks: Uint8Array[] = [],
       chunkSize = 1024 * 1024; // 1MB chunks
@@ -421,7 +352,7 @@ async function trackBlobProgress(
         onProgress({
           loaded: offset,
           total: blob.size,
-          lengthComputable: true,
+          lengthComputable: true
         });
 
         readNextChunk();
@@ -469,7 +400,7 @@ async function trackFormDataProgress(
           loaded: loadedSize,
           total: totalSize,
           lengthComputable: true,
-          percent: Math.round((progress.loaded / totalSize) * 100),
+          percent: Math.round((progress.loaded / totalSize) * 100)
         });
       });
     } else {
@@ -479,7 +410,7 @@ async function trackFormDataProgress(
         loaded: loadedSize,
         total: totalSize,
         lengthComputable: true,
-        percent: Math.round((size / totalSize) * 100),
+        percent: Math.round((size / totalSize) * 100)
       });
     }
   }
@@ -523,10 +454,8 @@ async function trackDownloadProgress<T>(
     onProgress({
       loaded: receivedLength,
       total: contentLength || undefined,
-      percent: contentLength
-        ? Math.round((receivedLength / contentLength) * 100)
-        : 0,
-      lengthComputable: !!contentLength,
+      percent: contentLength ? Math.round((receivedLength / contentLength) * 100) : 0,
+      lengthComputable: !!contentLength
     });
   }
 
@@ -540,11 +469,7 @@ async function trackDownloadProgress<T>(
 
   if (!response.ok) {
     const errorData = await parseErrorResponseFromBuffer(data, responseType);
-    throw new HttpError(
-      `Request failed with status ${response.status}`,
-      response.status,
-      errorData
-    );
+    throw new HttpError(`Request failed with status ${response.status}`, response.status, errorData);
   }
 
   return parseResponseFromBuffer<T>(data, responseType);
@@ -559,10 +484,7 @@ async function trackDownloadProgress<T>(
  * @param responseType - The expected response type
  * @returns A Promise resolving to the parsed data
  */
-async function parseResponse<T>(
-  response: Response,
-  responseType?: ResponseType
-): Promise<T> {
+async function parseResponse<T>(response: Response, responseType?: ResponseType): Promise<T> {
   switch (responseType) {
     case "json":
       return response.json();
@@ -588,10 +510,7 @@ async function parseResponse<T>(
  * @param responseType - The expected response type
  * @returns A Promise resolving to the parsed error data or text
  */
-async function parseErrorResponse(
-  response: Response,
-  responseType?: ResponseType
-): Promise<unknown> {
+async function parseErrorResponse(response: Response, responseType?: ResponseType): Promise<unknown> {
   try {
     return await parseResponse(response, responseType);
   } catch {
@@ -611,10 +530,7 @@ async function parseErrorResponse(
  * @param responseType - The expected response type
  * @returns The parsed data
  */
-function parseResponseFromBuffer<T>(
-  buffer: Uint8Array,
-  responseType?: ResponseType
-): T {
+function parseResponseFromBuffer<T>(buffer: Uint8Array, responseType?: ResponseType): T {
   const decoder = new TextDecoder();
 
   switch (responseType) {
@@ -627,10 +543,7 @@ function parseResponseFromBuffer<T>(
     case "arraybuffer":
       return buffer.buffer as T;
     case "document":
-      return new DOMParser().parseFromString(
-        decoder.decode(buffer),
-        "text/html"
-      ) as T;
+      return new DOMParser().parseFromString(decoder.decode(buffer), "text/html") as T;
     default:
       return JSON.parse(decoder.decode(buffer)) as T;
   }
@@ -643,10 +556,7 @@ function parseResponseFromBuffer<T>(
  * @param responseType - The expected response type
  * @returns The parsed error data or text
  */
-function parseErrorResponseFromBuffer(
-  buffer: Uint8Array,
-  responseType?: ResponseType
-): unknown {
+function parseErrorResponseFromBuffer(buffer: Uint8Array, responseType?: ResponseType): unknown {
   try {
     return parseResponseFromBuffer(buffer, responseType);
   } catch {

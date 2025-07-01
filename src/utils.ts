@@ -5,10 +5,7 @@
  * @param params - An object containing key-value pairs of parameters to add. Null or undefined values will be automatically filtered out.
  * @returns The constructed URL with query parameters. If no valid parameters are provided, the original URL is returned unchanged.
  */
-export function addQueryParams(
-  url: string,
-  params: Record<string, string | number | boolean>
-): string {
+export function addQueryParams(url: string, params: Record<string, string | number | boolean>): string {
   const entries = Object.entries(params).filter((entry) => entry[1] != null);
 
   if (!entries.length) return url;
@@ -25,10 +22,7 @@ export function addQueryParams(
  * @* @forum sources Objects that need to be combined with the base
  * @returns A new object containing the combined properties
  */
-export function deepMergeObject<T extends object>(
-  target: T,
-  ...sources: Partial<T>[]
-): T {
+export function deepMergeObject<T extends object>(target: T, ...sources: Partial<T>[]): T {
   if (!sources.length) return target;
 
   const output: { [K in keyof T]?: T[K] | Partial<T[K]> } = { ...target };
@@ -42,10 +36,7 @@ export function deepMergeObject<T extends object>(
         const targetValue = target[key as keyof T];
 
         if (isObject(sourceValue) && key in target && isObject(targetValue)) {
-          output[key as keyof T] = deepMergeObject(
-            targetValue as object,
-            sourceValue as object
-          ) as T[keyof T];
+          output[key as keyof T] = deepMergeObject(targetValue as object, sourceValue as object) as T[keyof T];
         } else {
           output[key as keyof T] = sourceValue as T[keyof T];
         }

@@ -7,14 +7,14 @@ export default defineConfig([
   {
     files: ["**/*.{js,mjs,cjs,ts,mts,cts}"],
     plugins: { js },
-    extends: ["js/recommended"],
+    extends: ["js/recommended"]
   },
   {
     files: ["**/*.{js,mjs,cjs,ts,mts,cts}"],
     languageOptions: {
-      globals: globals.browser,
-    },
+      globals: globals.browser
+    }
   },
 
-  tseslint.configs.recommended,
+  tseslint.configs.recommended
 ]);
