@@ -1,10 +1,19 @@
 {
-  "name": "@priveted/ajax",
-  "version": "1.0.5",
+  "name": "test-ajax-pr",
+  "version": "1.0.6",
   "type": "module",
-  "main": "dist/ajax.umd.js",
-  "module": "dist/ajax.mjs",
-  "types": "./types/index.d.ts",
+  "main": "./dist/ajax.umd.js",
+  "module": "./dist/ajax.umd.mjs",
+  "types": "./dist/ajax.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/ajax.mjs",
+      "require": "./dist/ajax.umd.js"
+    }
+  },
+  "files": [
+    "dist/**/*"
+  ],
   "description": "A modern and lightweight library for working with ajax, allowing you to use various request technologies in a single style.",
   "keywords": [
     "ajax",
@@ -21,6 +30,7 @@
   "author": "Eduard Y",
   "scripts": {
     "dev": "vite",
+    "prepare": "npm run build",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "lint": "eslint . --fix",
