@@ -20,9 +20,11 @@ export default defineConfig({
   plugins: [
     dts({
       insertTypesEntry: true,
-      include: ["src"],
+      include: ["src", 'types'],
       outDir: "dist",
-      entryRoot: "src"
+      entryRoot: "src",
+      rollupTypes: false,   
+      copyDtsFiles: true
     })
   ]
 });
