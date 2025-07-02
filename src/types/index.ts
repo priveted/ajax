@@ -4,6 +4,3 @@ export * from "./request";
 export * from "./progressEvent";
 export * from "./ajaxOptions";
 export * from "./globalConfig";
-export * from "../src/ajax";
-export * from "../src/utils";
-export * from "../src/errors";
