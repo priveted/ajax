@@ -3,7 +3,7 @@ import AjaxError from "./errors/AjaxError";
 import HttpError from "./errors/HttpError";
 import NetworkError from "./errors/NetworkError";
 import TimeoutError from "./errors/TimeoutError";
-import type { AjaxOptions, GlobalConfig, ProgressEvent, ResponseType, XMLHttpRequestBodyInit } from "../types";
+import type { AjaxOptions, GlobalConfig, ProgressEvent, ResponseType, XMLHttpRequestBodyInit } from "./types";
 import { addQueryParams, deepMergeObject, isEmptyObject } from "./utils";
 
 /**
@@ -567,3 +567,5 @@ function parseErrorResponseFromBuffer(buffer: Uint8Array, responseType?: Respons
     }
   }
 }
+
+export * from './errors';
