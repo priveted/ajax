@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import { resolve } from "path";
 import { fileURLToPath } from "url";
 import dts from "vite-plugin-dts";
+import { viteStaticCopy } from "vite-plugin-static-copy";
 
 export default defineConfig({
   build: {
@@ -20,11 +21,19 @@ export default defineConfig({
   plugins: [
     dts({
       insertTypesEntry: true,
-      include: ["src", 'types'],
+      include: ["src", "types"],
       outDir: "dist",
       entryRoot: "src",
-      rollupTypes: false,   
+      rollupTypes: false,
       copyDtsFiles: true
+    }),
+    viteStaticCopy({
+      targets: [
+        {
+          src: "types/*.d.ts",
+          dest: "types"
+        }
+      ]
     })
   ]
 });
