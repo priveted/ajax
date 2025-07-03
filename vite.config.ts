@@ -20,7 +20,7 @@ export default defineConfig({
   plugins: [
     dts({
       insertTypesEntry: true,
-      include: ["src", "types"],
+      include: ["src"],
       outDir: "dist",
       entryRoot: "src",
       rollupTypes: false,
