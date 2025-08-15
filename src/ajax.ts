@@ -41,7 +41,7 @@ export function getConfig<T extends keyof GlobalConfig>(key?: T): GlobalConfig |
  * @param options - Request-specific options to override defaults
  * @returns A tuple containing the [finalUrl, preparedOptions]
  */
-export function prepareRequest(url: string, options: AjaxOptions): [string, AjaxOptions] {
+export function prepareRequest(url: string, options: AjaxOptions = {}): [string, AjaxOptions] {
   const globalConfig: GlobalConfig = getConfig(),
     defaultOptions: AjaxOptions = {
       method: "GET",
@@ -93,7 +93,7 @@ export function ajax<T = unknown>(url: string, options: AjaxOptions = {}): Promi
  * @param url Request url
  * @param options Request Options
  */
-export function xhrRequest<T>(url: string, options: AjaxOptions): Promise<T> {
+export function xhrRequest<T>(url: string, options: AjaxOptions = {}): Promise<T> {
   const [urlWithParams, mergedOptions] = prepareRequest(url, options);
 
   return new Promise((resolve, reject) => {
@@ -187,10 +187,14 @@ export function xhrRequest<T>(url: string, options: AjaxOptions): Promise<T> {
     xhr.onerror = () => reject(new NetworkError("Network request failed", 0));
 
     if (mergedOptions.data) {
-      const isJson = headers["Content-Type"]?.includes("application/json"),
-        body = isJson ? JSON.stringify(mergedOptions.data) : mergedOptions.data;
+      const isJson = headers["Content-Type"]?.includes("application/json");
+      let body = isJson ? JSON.stringify(mergedOptions.data) : mergedOptions.data;
 
-      xhr.send(body as XMLHttpRequestBodyInit);
+      if (ArrayBuffer.isView(body)) {
+        body = body.buffer as ArrayBuffer;
+      }
+
+      xhr.send(body as Exclude<XMLHttpRequestBodyInit, ArrayBufferView> | ArrayBuffer);
     } else {
       xhr.send();
     }
@@ -202,7 +206,7 @@ export function xhrRequest<T>(url: string, options: AjaxOptions): Promise<T> {
  * @param url Request url
  * @param options Request Options
  */
-export async function fetchRequest<T>(url: string, options: AjaxOptions): Promise<T> {
+export async function fetchRequest<T>(url: string, options: AjaxOptions = {}): Promise<T> {
   const [urlWithParams, mergedOptions] = prepareRequest(url, options),
     init: RequestInit = {
       method: mergedOptions.method,
@@ -330,7 +334,6 @@ async function trackBlobProgress(blob: Blob, onProgress: (progress: ProgressEven
           }
 
           resolve(result);
-
           return;
         }
 
@@ -341,7 +344,6 @@ async function trackBlobProgress(blob: Blob, onProgress: (progress: ProgressEven
       reader.onload = (e) => {
         if (!e.target?.result) {
           reject(new Error("Empty chunk read"));
-
           return;
         }
 
@@ -362,7 +364,9 @@ async function trackBlobProgress(blob: Blob, onProgress: (progress: ProgressEven
     });
   };
 
-  return new Blob([await readBlobWithProgress(blob, onProgress)]);
+  const buffer = await readBlobWithProgress(blob, onProgress);
+
+  return new Blob([buffer.buffer as ArrayBuffer]);
 }
 
 /**
@@ -539,7 +543,7 @@ function parseResponseFromBuffer<T>(buffer: Uint8Array, responseType?: ResponseT
     case "text":
       return decoder.decode(buffer) as T;
     case "blob":
-      return new Blob([buffer]) as T;
+      return new Blob([buffer.buffer as ArrayBuffer]) as T;
     case "arraybuffer":
       return buffer.buffer as T;
     case "document":
