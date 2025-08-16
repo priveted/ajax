@@ -3,7 +3,14 @@ import AjaxError from "./errors/AjaxError";
 import HttpError from "./errors/HttpError";
 import NetworkError from "./errors/NetworkError";
 import TimeoutError from "./errors/TimeoutError";
-import type { AjaxOptions, GlobalConfig, ProgressEvent, ResponseType, XMLHttpRequestBodyInit } from "./types";
+import type {
+  AjaxExtendedResponse,
+  AjaxOptions,
+  GlobalConfig,
+  ProgressEvent,
+  ResponseType,
+  XMLHttpRequestBodyInit
+} from "./types";
 import { addQueryParams, deepMergeObject, isEmptyObject } from "./utils";
 
 /**
@@ -53,7 +60,8 @@ export function prepareRequest(url: string, options: AjaxOptions = {}): [string,
       cache: "default",
       credentials: "same-origin",
       mode: "cors",
-      redirect: "follow"
+      redirect: "follow",
+      extendedResponse: false
     };
 
   const finalOptions = deepMergeObject(defaultOptions, deepMergeObject(globalConfig, options)),
@@ -94,7 +102,7 @@ export function prepareRequest(url: string, options: AjaxOptions = {}): [string,
  * @param url Request url
  * @param options Request Options
  */
-export function ajax<T = unknown>(url: string, options: AjaxOptions = {}): Promise<T> {
+export function ajax<T = unknown>(url: string, options: AjaxOptions = {}): Promise<T | AjaxExtendedResponse<T>> {
   return options?.engine === "xhr" ? xhrRequest<T>(url, options) : fetchRequest<T>(url, options);
 }
 
@@ -103,7 +111,7 @@ export function ajax<T = unknown>(url: string, options: AjaxOptions = {}): Promi
  * @param url Request url
  * @param options Request Options
  */
-export function xhrRequest<T>(url: string, options: AjaxOptions = {}): Promise<T> {
+export function xhrRequest<T>(url: string, options: AjaxOptions = {}): Promise<T | AjaxExtendedResponse<T>> {
   const [urlWithParams, mergedOptions] = prepareRequest(url, options);
 
   return new Promise((resolve, reject) => {
@@ -181,16 +189,31 @@ export function xhrRequest<T>(url: string, options: AjaxOptions = {}): Promise<T
     }
 
     xhr.onload = () => {
+      let responseData = xhr.response;
+
+      if (mergedOptions.responseType === "document") {
+        responseData = new DOMParser().parseFromString(xhr.responseText, "text/html");
+      }
+
       if (xhr.status >= 200 && xhr.status < 300) {
-        let responseData = xhr.response;
-
-        if (responseType === "document") {
-          responseData = new DOMParser().parseFromString(xhr.responseText, "text/html");
+        if (mergedOptions.extendedResponse) {
+          resolve({
+            data: responseData,
+            status: xhr.status,
+            statusText: xhr.statusText,
+            headers: getResponseHeaders(xhr)
+          });
+        } else {
+          resolve(responseData);
         }
-
-        resolve(responseData);
       } else {
-        reject(new HttpError(`Request failed with status ${xhr.status}`, xhr.status, xhr.response));
+        const error = new HttpError(
+          `Request failed with status ${xhr.status}`,
+          xhr.status,
+          responseData,
+          mergedOptions.extendedResponse ? getResponseHeaders(xhr) : undefined
+        );
+        reject(error);
       }
     };
 
@@ -220,11 +243,40 @@ export function xhrRequest<T>(url: string, options: AjaxOptions = {}): Promise<T
 }
 
 /**
+ * Gets response headers from either XHR or Fetch response objects
+ * @param responseObj - XMLHttpRequest or Fetch Response object
+ */
+function getResponseHeaders(responseObj: XMLHttpRequest | Response): Record<string, string> {
+  const headers: Record<string, string> = {};
+
+  if (responseObj instanceof XMLHttpRequest) {
+    const headerStr = responseObj.getAllResponseHeaders();
+
+    if (headerStr) {
+      headerStr
+        .trim()
+        .split(/[\r\n]+/)
+        .forEach((line) => {
+          const [name, ...valueParts] = line.split(": ");
+          const value = valueParts.join(": ").trim();
+          if (name) headers[name.trim()] = value;
+        });
+    }
+  } else if (responseObj instanceof Response) {
+    responseObj.headers.forEach((value, key) => {
+      headers[key] = value;
+    });
+  }
+
+  return headers;
+}
+
+/**
  * Fetch-based request with full feature parity including progress tracking
  * @param url Request url
  * @param options Request Options
  */
-export async function fetchRequest<T>(url: string, options: AjaxOptions = {}): Promise<T> {
+export async function fetchRequest<T>(url: string, options: AjaxOptions = {}): Promise<T | AjaxExtendedResponse<T>> {
   const [urlWithParams, mergedOptions] = prepareRequest(url, options),
     init: RequestInit = {
       method: mergedOptions.method,
@@ -258,7 +310,8 @@ export async function fetchRequest<T>(url: string, options: AjaxOptions = {}): P
       await trackUploadProgress(init.body, mergedOptions.onUploadProgress);
     }
 
-    const response = await fetch(urlWithParams, init);
+    const response = await fetch(urlWithParams, init),
+      headers = mergedOptions.extendedResponse ? getResponseHeaders(response) : undefined;
 
     if (mergedOptions.onDownloadProgress) {
       return await trackDownloadProgress<T>(response, mergedOptions.onDownloadProgress, mergedOptions.responseType);
@@ -266,11 +319,18 @@ export async function fetchRequest<T>(url: string, options: AjaxOptions = {}): P
 
     if (!response.ok) {
       const errorData = await parseErrorResponse(response, mergedOptions.responseType);
-
-      throw new HttpError(`Request failed with status ${response.status}`, response.status, errorData);
+      throw new HttpError(`Request failed with status ${response.status}`, response.status, errorData, headers);
     }
 
-    return await parseResponse<T>(response, mergedOptions.responseType);
+    const data = await parseResponse<T>(response, mergedOptions.responseType);
+    return mergedOptions.extendedResponse
+      ? {
+          data: data,
+          status: response.status,
+          statusText: response.statusText,
+          headers: headers!
+        }
+      : data;
   } catch (error) {
     if (error instanceof DOMException) {
       if (error.name === "AbortError") {

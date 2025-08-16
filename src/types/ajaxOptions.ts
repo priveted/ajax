@@ -22,6 +22,7 @@ export interface AjaxOptions {
   mode?: RequestMode;
   redirect?: RequestRedirect;
   signal?: AbortSignal;
+  extendedResponse?: boolean;
   onUploadProgress?: (progressEvent: ProgressEvent) => void;
   onDownloadProgress?: (progressEvent: ProgressEvent) => void;
 }

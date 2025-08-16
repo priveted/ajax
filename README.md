@@ -55,6 +55,7 @@ The main method that provides a unified interface for making requests. It can us
 | `mode`               | string           | "cors"        | Request mode: "cors", "no-cors", "same-origin", "navigate"                               |
 | `redirect`           | string           | "follow"      | Redirect handling: "follow", "error", "manual"                                           |
 | `signal`             | AbortSignal      | undefined     | AbortSignal for cancelling request                                                       |
+| `extendedResponse`   | boolean          | false         | Extended response in the form of an object: "data", "status", "statusText", "headers"    |
 | `onDownloadProgress` | function         | undefined     | Download progress callback                                                               |
 | `onUploadProgress`   | function         | undefined     | Upload progress callback                                                                 |
 
