@@ -62,18 +62,28 @@ export function prepareRequest(url: string, options: AjaxOptions = {}): [string,
         ? addQueryParams(url, finalOptions.data as Record<string, string | number | boolean>)
         : url;
 
-  const { data } = finalOptions;
+  const { data, headers } = finalOptions;
+  const contentType = headers?.["Content-Type"] || headers?.["content-type"];
 
-  if (
-    data &&
-    typeof data === "object" &&
-    !(data instanceof FormData) &&
-    !(data instanceof Blob) &&
-    !(data instanceof URLSearchParams) &&
-    !(data instanceof ArrayBuffer) &&
-    !ArrayBuffer.isView(data)
-  ) {
-    finalOptions.data = JSON.stringify(finalOptions.data);
+  if (data && typeof data === "object") {
+    if (contentType?.includes("application/x-www-form-urlencoded")) {
+      finalOptions.data = new URLSearchParams(data as Record<string, string>).toString();
+    } else if (
+      !(data instanceof FormData) &&
+      !(data instanceof Blob) &&
+      !(data instanceof URLSearchParams) &&
+      !(data instanceof ArrayBuffer) &&
+      !ArrayBuffer.isView(data) &&
+      !contentType?.includes("multipart/form-data")
+    ) {
+      finalOptions.data = JSON.stringify(data);
+      if (!contentType) {
+        finalOptions.headers = {
+          ...finalOptions.headers,
+          "Content-Type": "application/json"
+        };
+      }
+    }
   }
 
   return [finalUrl, finalOptions];
@@ -187,14 +197,22 @@ export function xhrRequest<T>(url: string, options: AjaxOptions = {}): Promise<T
     xhr.onerror = () => reject(new NetworkError("Network request failed", 0));
 
     if (mergedOptions.data) {
-      const isJson = headers["Content-Type"]?.includes("application/json");
-      let body = isJson ? JSON.stringify(mergedOptions.data) : mergedOptions.data;
+      let body: XMLHttpRequestBodyInit;
 
-      if (ArrayBuffer.isView(body)) {
-        body = body.buffer as ArrayBuffer;
+      if (
+        typeof mergedOptions.data === "string" ||
+        mergedOptions.data instanceof Blob ||
+        mergedOptions.data instanceof FormData ||
+        mergedOptions.data instanceof URLSearchParams
+      ) {
+        body = mergedOptions.data;
+      } else if (ArrayBuffer.isView(mergedOptions.data)) {
+        body = mergedOptions.data.buffer as ArrayBuffer;
+      } else {
+        body = JSON.stringify(mergedOptions.data);
       }
 
-      xhr.send(body as Exclude<XMLHttpRequestBodyInit, ArrayBufferView> | ArrayBuffer);
+      xhr.send(body);
     } else {
       xhr.send();
     }
