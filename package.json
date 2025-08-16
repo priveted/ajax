@@ -1,6 +1,6 @@
 {
   "name": "@priveted/ajax",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "type": "module",
   "main": "./dist/ajax.umd.js",
   "module": "./dist/ajax.umd.mjs",
