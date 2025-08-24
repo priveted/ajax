@@ -54,6 +54,7 @@ export function deepMergeObject<T extends object>(target: T, ...sources: Partial
 export function isObject(item: unknown): item is Record<PropertyKey, unknown> {
   return item !== null && typeof item === "object" && !Array.isArray(item);
 }
+
 /**
  * Checks if an object is empty (has no own enumerable properties).
  * @param obj - The object to check.
@@ -61,4 +62,26 @@ export function isObject(item: unknown): item is Record<PropertyKey, unknown> {
  */
 export function isEmptyObject(obj: object): boolean {
   return Object.keys(obj).length === 0;
+}
+
+/**
+ * Check if value is FormData
+ */
+export function isFormData(value: unknown): boolean {
+  return typeof FormData !== "undefined" && value instanceof FormData;
+}
+
+/**
+ * Check if should set Content-Type header
+ */
+export function shouldSetContentType(data: unknown, headers: Record<string, string> = {}): boolean {
+  if (isFormData(data)) {
+    return false;
+  }
+
+  if (headers["Content-Type"] || headers["content-type"]) {
+    return false;
+  }
+
+  return data !== null && data !== undefined;
 }
