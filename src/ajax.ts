@@ -9,9 +9,11 @@ import type {
   GlobalConfig,
   ProgressEvent,
   ResponseType,
-  XMLHttpRequestBodyInit
+  XMLHttpRequestBodyInit,
+  RequestTransformer,
+  ResponseTransformer
 } from "./types";
-import { addQueryParams, deepMergeObject, isEmptyObject } from "./utils";
+import { addQueryParams, deepMergeObject, isEmptyObject, isFormData, shouldSetContentType } from "./utils";
 
 /**
  * Global configuration store for AJAX requests.
@@ -41,6 +43,74 @@ export function getConfig<T extends keyof GlobalConfig>(key?: T): GlobalConfig |
 }
 
 /**
+ * Determines content type based on data and headers
+ * Similar to Axios behavior
+ */
+function determineContentType(data: unknown, headers: Record<string, string> = {}): string {
+  // If content-type is explicitly set, use it
+  const explicitContentType = headers["Content-Type"] || headers["content-type"];
+  if (explicitContentType) {
+    return explicitContentType;
+  }
+
+  // Determine content type based on data type
+  if (data instanceof URLSearchParams) {
+    return "application/x-www-form-urlencoded;charset=utf-8";
+  } else if (typeof data === "object" && data !== null && !(data instanceof Blob) && !isFormData(data)) {
+    return "application/json;charset=utf-8";
+  } else if (typeof data === "string") {
+    return "text/plain;charset=utf-8";
+  } else if (data instanceof Blob) {
+    return data.type || "application/octet-stream";
+  }
+
+  return "application/octet-stream";
+}
+
+/**
+ * Serializes data based on content type
+ */
+function serializeData(data: unknown, contentType: string): XMLHttpRequestBodyInit {
+  if (isFormData(data)) {
+    return data as XMLHttpRequestBodyInit;
+  }
+
+  if (contentType.includes("application/x-www-form-urlencoded") && typeof data === "object" && data !== null) {
+    return new URLSearchParams(data as Record<string, string>).toString();
+  } else if (contentType.includes("application/json") && typeof data === "object" && data !== null) {
+    return JSON.stringify(data);
+  } else if (data instanceof URLSearchParams) {
+    return data;
+  } else if (ArrayBuffer.isView(data)) {
+    return (data as ArrayBufferView).buffer as ArrayBuffer;
+  } else if (typeof data === "object" && data !== null) {
+    // Fallback for objects - stringify as JSON
+    return JSON.stringify(data);
+  }
+
+  return data as XMLHttpRequestBodyInit;
+}
+
+/**
+ * Normalizes headers to have consistent casing (Title-Case)
+ */
+function normalizeHeaders(headers: Record<string, string> = {}): Record<string, string> {
+  const normalized: Record<string, string> = {};
+
+  Object.entries(headers).forEach(([key, value]) => {
+    const normalizedKey = key
+      .toLowerCase()
+      .split("-")
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join("-");
+
+    normalized[normalizedKey] = value;
+  });
+
+  return normalized;
+}
+
+/**
  * Prepares and normalizes request options by merging global configurations with request-specific options.
  * Handles request data serialization and URL preparation based on the request method.
  *
@@ -61,36 +131,43 @@ export function prepareRequest(url: string, options: AjaxOptions = {}): [string,
       credentials: "same-origin",
       mode: "cors",
       redirect: "follow",
-      extendedResponse: false
+      extendedResponse: false,
+      transformRequest: [
+        (data: unknown, headers: Record<string, string>) => {
+          const contentType = determineContentType(data, headers);
+          return serializeData(data, contentType);
+        }
+      ] as RequestTransformer[],
+      transformResponse: [(data: unknown) => data] as ResponseTransformer[]
     };
 
   const finalOptions = deepMergeObject(defaultOptions, deepMergeObject(globalConfig, options)),
     finalUrl =
-      finalOptions.method === "GET" && typeof finalOptions.data === "object" && !isEmptyObject(finalOptions.data || {})
+      finalOptions.method === "GET" &&
+      typeof finalOptions.data === "object" &&
+      finalOptions.data !== null &&
+      !isEmptyObject(finalOptions.data)
         ? addQueryParams(url, finalOptions.data as Record<string, string | number | boolean>)
         : url;
 
-  const { data, headers } = finalOptions;
-  const contentType = headers?.["Content-Type"] || headers?.["content-type"];
+  finalOptions.headers = normalizeHeaders(finalOptions.headers);
 
-  if (data && typeof data === "object") {
-    if (contentType?.includes("application/x-www-form-urlencoded")) {
-      finalOptions.data = new URLSearchParams(data as Record<string, string>).toString();
-    } else if (
-      !(data instanceof FormData) &&
-      !(data instanceof Blob) &&
-      !(data instanceof URLSearchParams) &&
-      !(data instanceof ArrayBuffer) &&
-      !ArrayBuffer.isView(data) &&
-      !contentType?.includes("multipart/form-data")
-    ) {
-      finalOptions.data = JSON.stringify(data);
-      if (!contentType) {
-        finalOptions.headers = {
-          ...finalOptions.headers,
-          "Content-Type": "application/json"
-        };
-      }
+  if (finalOptions.data !== null && finalOptions.data !== undefined && finalOptions.transformRequest) {
+    let currentData: unknown = finalOptions.data;
+    for (const transformer of finalOptions.transformRequest) {
+      currentData = transformer(currentData, finalOptions.headers || {});
+    }
+    finalOptions.data = currentData as XMLHttpRequestBodyInit | null | undefined;
+  }
+
+  if (shouldSetContentType(finalOptions.data, finalOptions.headers)) {
+    const contentType = determineContentType(finalOptions.data, finalOptions.headers);
+
+    if (contentType) {
+      finalOptions.headers = {
+        ...finalOptions.headers,
+        "Content-Type": contentType
+      };
     }
   }
 
@@ -111,7 +188,7 @@ export function ajax<T = unknown>(url: string, options: AjaxOptions = {}): Promi
  * @param url Request url
  * @param options Request Options
  */
-export function xhrRequest<T>(url: string, options: AjaxOptions = {}): Promise<T | AjaxExtendedResponse<T>> {
+export function xhrRequest<T = unknown>(url: string, options: AjaxOptions = {}): Promise<T | AjaxExtendedResponse<T>> {
   const [urlWithParams, mergedOptions] = prepareRequest(url, options);
 
   return new Promise((resolve, reject) => {
@@ -120,9 +197,13 @@ export function xhrRequest<T>(url: string, options: AjaxOptions = {}): Promise<T
 
     const headers = mergedOptions.headers || {};
 
-    Object.entries(headers).forEach(([key, value]) => {
-      xhr.setRequestHeader(key, value);
-    });
+    if (!isFormData(mergedOptions.data)) {
+      Object.entries(headers).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          xhr.setRequestHeader(key, value);
+        }
+      });
+    }
 
     const responseType = mergedOptions.responseType || "json";
     xhr.responseType = responseType === "document" ? "text" : responseType;
@@ -189,22 +270,30 @@ export function xhrRequest<T>(url: string, options: AjaxOptions = {}): Promise<T
     }
 
     xhr.onload = () => {
-      let responseData = xhr.response;
+      let responseData: unknown = xhr.response;
 
       if (mergedOptions.responseType === "document") {
         responseData = new DOMParser().parseFromString(xhr.responseText, "text/html");
       }
 
+      if (mergedOptions.transformResponse) {
+        responseData = mergedOptions.transformResponse.reduce<unknown>((currentData, transformer) => {
+          const xhrTransformer = transformer as (data: unknown, response: XMLHttpRequest) => unknown;
+          return xhrTransformer(currentData, xhr);
+        }, responseData);
+      }
+
       if (xhr.status >= 200 && xhr.status < 300) {
         if (mergedOptions.extendedResponse) {
           resolve({
-            data: responseData,
+            data: responseData as T,
             status: xhr.status,
             statusText: xhr.statusText,
-            headers: getResponseHeaders(xhr)
-          });
+            headers: getResponseHeaders(xhr),
+            config: mergedOptions
+          } as AjaxExtendedResponse<T>);
         } else {
-          resolve(responseData);
+          resolve(responseData as T);
         }
       } else {
         const error = new HttpError(
@@ -219,23 +308,8 @@ export function xhrRequest<T>(url: string, options: AjaxOptions = {}): Promise<T
 
     xhr.onerror = () => reject(new NetworkError("Network request failed", 0));
 
-    if (mergedOptions.data) {
-      let body: XMLHttpRequestBodyInit;
-
-      if (
-        typeof mergedOptions.data === "string" ||
-        mergedOptions.data instanceof Blob ||
-        mergedOptions.data instanceof FormData ||
-        mergedOptions.data instanceof URLSearchParams
-      ) {
-        body = mergedOptions.data;
-      } else if (ArrayBuffer.isView(mergedOptions.data)) {
-        body = mergedOptions.data.buffer as ArrayBuffer;
-      } else {
-        body = JSON.stringify(mergedOptions.data);
-      }
-
-      xhr.send(body);
+    if (mergedOptions.data !== null && mergedOptions.data !== undefined) {
+      xhr.send(mergedOptions.data as XMLHttpRequestBodyInit);
     } else {
       xhr.send();
     }
@@ -276,22 +350,30 @@ function getResponseHeaders(responseObj: XMLHttpRequest | Response): Record<stri
  * @param url Request url
  * @param options Request Options
  */
-export async function fetchRequest<T>(url: string, options: AjaxOptions = {}): Promise<T | AjaxExtendedResponse<T>> {
-  const [urlWithParams, mergedOptions] = prepareRequest(url, options),
-    init: RequestInit = {
-      method: mergedOptions.method,
-      headers: mergedOptions.headers,
-      cache: mergedOptions.cache,
-      credentials: mergedOptions.credentials,
-      mode: mergedOptions.mode,
-      redirect: mergedOptions.redirect,
-      signal: mergedOptions.signal
-    };
+export async function fetchRequest<T = unknown>(
+  url: string,
+  options: AjaxOptions = {}
+): Promise<T | AjaxExtendedResponse<T>> {
+  const [urlWithParams, mergedOptions] = prepareRequest(url, options);
 
-  if (mergedOptions.data) {
-    const isJson = mergedOptions.headers?.["Content-Type"]?.includes("application/json");
+  const initHeaders = { ...mergedOptions.headers };
 
-    init.body = isJson ? JSON.stringify(mergedOptions.data) : (mergedOptions.data as BodyInit);
+  if (isFormData(mergedOptions.data) && initHeaders["Content-Type"]) {
+    delete initHeaders["Content-Type"];
+  }
+
+  const init: RequestInit = {
+    method: mergedOptions.method,
+    headers: initHeaders,
+    cache: mergedOptions.cache,
+    credentials: mergedOptions.credentials,
+    mode: mergedOptions.mode,
+    redirect: mergedOptions.redirect,
+    signal: mergedOptions.signal
+  };
+
+  if (mergedOptions.data !== null && mergedOptions.data !== undefined) {
+    init.body = mergedOptions.data as BodyInit;
   }
 
   let timeoutId: number | undefined;
@@ -314,7 +396,12 @@ export async function fetchRequest<T>(url: string, options: AjaxOptions = {}): P
       headers = mergedOptions.extendedResponse ? getResponseHeaders(response) : undefined;
 
     if (mergedOptions.onDownloadProgress) {
-      return await trackDownloadProgress<T>(response, mergedOptions.onDownloadProgress, mergedOptions.responseType);
+      return await trackDownloadProgress<T>(
+        response,
+        mergedOptions.onDownloadProgress,
+        mergedOptions.responseType,
+        mergedOptions.transformResponse
+      );
     }
 
     if (!response.ok) {
@@ -322,13 +409,15 @@ export async function fetchRequest<T>(url: string, options: AjaxOptions = {}): P
       throw new HttpError(`Request failed with status ${response.status}`, response.status, errorData, headers);
     }
 
-    const data = await parseResponse<T>(response, mergedOptions.responseType);
+    const data = await parseResponse<T>(response, mergedOptions.responseType, mergedOptions.transformResponse);
+
     return mergedOptions.extendedResponse
       ? {
           data: data,
           status: response.status,
           statusText: response.statusText,
-          headers: headers!
+          headers: headers!,
+          config: mergedOptions
         }
       : data;
   } catch (error) {
@@ -369,16 +458,14 @@ async function trackUploadProgress(body: BodyInit, onProgress: (progress: Progre
   if (typeof body === "string") size = new TextEncoder().encode(body).length;
 
   if (body instanceof ArrayBuffer || body instanceof Uint8Array) size = body.byteLength;
-
   if (body instanceof URLSearchParams) size = new TextEncoder().encode(body.toString()).length;
-
   if (body instanceof Blob) size = body.size;
 
   onProgress({
     loaded: size,
     total: size,
     lengthComputable: true,
-    percent: 0
+    percent: 100
   });
   return body;
 }
@@ -432,7 +519,8 @@ async function trackBlobProgress(blob: Blob, onProgress: (progress: ProgressEven
         onProgress({
           loaded: offset,
           total: blob.size,
-          lengthComputable: true
+          lengthComputable: true,
+          percent: Math.round((offset / blob.size) * 100)
         });
 
         readNextChunk();
@@ -463,14 +551,13 @@ async function trackFormDataProgress(
   let totalSize = 0,
     loadedSize = 0;
 
-  for (const entry of formData.entries()) {
-    const value = entry[1];
+  for (const [name, value] of formData.entries()) {
     if (value instanceof Blob) {
       totalSize += value.size;
     } else {
       totalSize += new TextEncoder().encode(value.toString()).length;
     }
-    newFormData.append(entry[0], value);
+    newFormData.append(name, value);
   }
 
   for (const entry of newFormData.entries()) {
@@ -482,7 +569,7 @@ async function trackFormDataProgress(
           loaded: loadedSize,
           total: totalSize,
           lengthComputable: true,
-          percent: Math.round((progress.loaded / totalSize) * 100)
+          percent: Math.round((loadedSize / totalSize) * 100)
         });
       });
     } else {
@@ -492,7 +579,7 @@ async function trackFormDataProgress(
         loaded: loadedSize,
         total: totalSize,
         lengthComputable: true,
-        percent: Math.round((size / totalSize) * 100)
+        percent: Math.round((loadedSize / totalSize) * 100)
       });
     }
   }
@@ -508,13 +595,15 @@ async function trackFormDataProgress(
  * @param response - The Fetch API Response object
  * @param onProgress - Callback function that receives progress events
  * @param responseType - Optional type hint for response parsing
+ * @param transformResponse - Optional transform functions
  * @returns A Promise resolving to the parsed response data
  * @throws {HttpError} When the response status is not OK
  */
 async function trackDownloadProgress<T>(
   response: Response,
   onProgress: (progress: ProgressEvent) => void,
-  responseType?: ResponseType
+  responseType?: ResponseType,
+  transformResponse?: Array<ResponseTransformer>
 ): Promise<T> {
   const contentLength = Number(response.headers.get("Content-Length")),
     reader = response.body?.getReader();
@@ -531,14 +620,16 @@ async function trackDownloadProgress<T>(
 
     if (done) break;
 
-    chunks.push(value);
-    receivedLength += value.length;
-    onProgress({
-      loaded: receivedLength,
-      total: contentLength || undefined,
-      percent: contentLength ? Math.round((receivedLength / contentLength) * 100) : 0,
-      lengthComputable: !!contentLength
-    });
+    if (value) {
+      chunks.push(value);
+      receivedLength += value.length;
+      onProgress({
+        loaded: receivedLength,
+        total: contentLength || undefined,
+        percent: contentLength ? Math.round((receivedLength / contentLength) * 100) : 0,
+        lengthComputable: !!contentLength
+      });
+    }
   }
 
   const data = new Uint8Array(receivedLength);
@@ -554,7 +645,16 @@ async function trackDownloadProgress<T>(
     throw new HttpError(`Request failed with status ${response.status}`, response.status, errorData);
   }
 
-  return parseResponseFromBuffer<T>(data, responseType);
+  let parsedData = parseResponseFromBuffer<T>(data, responseType);
+
+  if (transformResponse) {
+    parsedData = transformResponse.reduce<unknown>((result, transformer) => {
+      const fetchTransformer = transformer as (data: unknown, response: Response) => unknown;
+      return fetchTransformer(result, response);
+    }, parsedData) as T;
+  }
+
+  return parsedData;
 }
 
 /**
@@ -564,25 +664,46 @@ async function trackDownloadProgress<T>(
  * @template T - The expected return type
  * @param response - The Fetch API Response object
  * @param responseType - The expected response type
+ * @param transformResponse - Optional transform functions
  * @returns A Promise resolving to the parsed data
  */
-async function parseResponse<T>(response: Response, responseType?: ResponseType): Promise<T> {
+async function parseResponse<T>(
+  response: Response,
+  responseType?: ResponseType,
+  transformResponse?: Array<ResponseTransformer>
+): Promise<T> {
+  let data: unknown;
+
   switch (responseType) {
     case "json":
-      return response.json();
+      data = await response.json();
+      break;
     case "text":
-      return response.text() as Promise<T>;
+      data = await response.text();
+      break;
     case "blob":
-      return response.blob() as Promise<T>;
+      data = await response.blob();
+      break;
     case "arraybuffer":
-      return response.arrayBuffer() as Promise<T>;
+      data = await response.arrayBuffer();
+      break;
     case "document": {
       const text = await response.text();
-      return new DOMParser().parseFromString(text, "text/html") as T;
+      data = new DOMParser().parseFromString(text, "text/html");
+      break;
     }
     default:
-      return response.json();
+      data = await response.json();
   }
+
+  if (transformResponse) {
+    data = transformResponse.reduce<unknown>((result, transformer) => {
+      const fetchTransformer = transformer as (data: unknown, response: Response) => unknown;
+      return fetchTransformer(result, response);
+    }, data);
+  }
+
+  return data as T;
 }
 
 /**

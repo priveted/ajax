@@ -8,7 +8,14 @@
 
   <body>
     <div id="app">
-      <div class="container" id="container"></div>
+      <div class="container" id="container">
+        <form id="serialized-form">
+          <input type="hidden" value="world" name="hello" />
+          <input type="text" name="name" />
+          <input type="file" name="file" id="file" />
+          <button id="send-form">Send</button>
+        </form>
+      </div>
     </div>
     <script type="module" src="./tests/app.ts"></script>
   </body>

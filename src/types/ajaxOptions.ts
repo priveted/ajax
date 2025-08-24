@@ -7,7 +7,9 @@ import type {
   RequestCache,
   RequestEngine,
   RequestRedirect,
-  RequestCredentials
+  RequestCredentials,
+  RequestTransformer,
+  ResponseTransformer
 } from ".";
 
 export interface AjaxOptions {
@@ -25,4 +27,6 @@ export interface AjaxOptions {
   extendedResponse?: boolean;
   onUploadProgress?: (progressEvent: ProgressEvent) => void;
   onDownloadProgress?: (progressEvent: ProgressEvent) => void;
+  transformRequest?: RequestTransformer[];
+  transformResponse?: ResponseTransformer[];
 }
