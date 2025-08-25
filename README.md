@@ -59,7 +59,7 @@ The main method that provides a unified interface for making requests. It can us
 | `onDownloadProgress` | function         | undefined     | Download progress callback                                                               |
 | `onUploadProgress`   | function         | undefined     | Upload progress callback                                                                 |
 | `transformRequest`   | function         | undefined     | Allows you to change the request data before sending it to the server                    |
-| `transformResponse`  | function         | undefined     | Allows you to make changes to the response data before transmitting it to then/catch    |
+| `transformResponse`  | function         | undefined     | Allows you to make changes to the response data before transmitting it to then/catch     |
 
 `xhrRequest(url: string, options?: AjaxOptions): Promise<any>`
 
