@@ -210,7 +210,7 @@ export function xhrRequest<T = unknown>(url: string, options: AjaxOptions = {}):
 
     if (mergedOptions.onUploadProgress) {
       xhr.upload.onprogress = (event: ProgressEvent) => {
-        const percent = event.total ? Math.round((event.loaded / event.total) * 100) : 0;
+        const percent = event.total ? Math.min(100, Math.round((event.loaded / event.total) * 100)) : 0;
 
         if (event.lengthComputable) {
           mergedOptions.onUploadProgress!({
@@ -234,7 +234,7 @@ export function xhrRequest<T = unknown>(url: string, options: AjaxOptions = {}):
       let lastPercent = 0;
 
       xhr.onprogress = (event: ProgressEvent) => {
-        const percent = event.total ? Math.round((event.loaded / event.total) * 100) : 0;
+        const percent = event.total ? Math.min(100, Math.round((event.loaded / event.total) * 100)) : 0;
 
         if (event.lengthComputable) {
           if (percent > lastPercent) {
@@ -520,7 +520,7 @@ async function trackBlobProgress(blob: Blob, onProgress: (progress: ProgressEven
           loaded: offset,
           total: blob.size,
           lengthComputable: true,
-          percent: Math.round((offset / blob.size) * 100)
+          percent: Math.min(100, Math.round((offset / blob.size) * 100))
         });
 
         readNextChunk();
@@ -548,8 +548,7 @@ async function trackFormDataProgress(
   onProgress: (progress: ProgressEvent) => void
 ): Promise<FormData> {
   const newFormData = new FormData();
-  let totalSize = 0,
-    loadedSize = 0;
+  let totalSize = 0;
 
   for (const [name, value] of formData.entries()) {
     if (value instanceof Blob) {
@@ -560,26 +559,33 @@ async function trackFormDataProgress(
     newFormData.append(name, value);
   }
 
+  let loadedSize = 0;
+
   for (const entry of newFormData.entries()) {
     const value = entry[1];
     if (value instanceof Blob) {
+      const initialLoadedSize = loadedSize;
       await trackBlobProgress(value, (progress) => {
-        loadedSize += progress.loaded;
+        const currentLoadedForThisBlob = progress.loaded;
+        loadedSize = initialLoadedSize + currentLoadedForThisBlob;
+
         onProgress({
           loaded: loadedSize,
           total: totalSize,
           lengthComputable: true,
-          percent: Math.round((loadedSize / totalSize) * 100)
+          percent: Math.min(100, Math.round((loadedSize / totalSize) * 100))
         });
       });
+      loadedSize = initialLoadedSize + value.size;
     } else {
       const size = new TextEncoder().encode(value.toString()).length;
       loadedSize += size;
+
       onProgress({
         loaded: loadedSize,
         total: totalSize,
         lengthComputable: true,
-        percent: Math.round((loadedSize / totalSize) * 100)
+        percent: Math.min(100, Math.round((loadedSize / totalSize) * 100))
       });
     }
   }
@@ -626,7 +632,7 @@ async function trackDownloadProgress<T>(
       onProgress({
         loaded: receivedLength,
         total: contentLength || undefined,
-        percent: contentLength ? Math.round((receivedLength / contentLength) * 100) : 0,
+        percent: contentLength ? Math.min(100, Math.round((receivedLength / contentLength) * 100)) : 0,
         lengthComputable: !!contentLength
       });
     }
